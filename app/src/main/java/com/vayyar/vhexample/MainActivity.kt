@@ -22,6 +22,7 @@ import com.walabot.home.ble.Result
 import com.walabot.home.ble.pairing.ConfigParams
 import com.walabot.home.ble.pairing.WifiNetworkMonitor
 import com.walabot.home.ble.pairing.esp.ProtocolMediator
+import com.walabot.home.ble.pairing.esp.WalabotDeviceDesc
 import com.walabot.home.ble.sdk.*
 
 class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
@@ -128,11 +129,11 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     }
 
 
-    override fun onStartScan() {
+    override fun onStartScan(deviceDesc: WalabotDeviceDesc?) {
         update("Ble Scanning")
     }
 
-    override fun onFinish(result: Result<ProtocolMediator.WifiScanResult>) {
+    override fun onFinish(result: Result<WalabotDeviceDesc>) {
         if (result.isSuccessfull) {
             runOnUiThread {
                 binding.fab.isEnabled = true
@@ -149,7 +150,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
         }
     }
 
-    override fun onEvent(event: EspPairingEvent) {
+    override fun onEvent(event: EspPairingEvent, deviceDesc: WalabotDeviceDesc?) {
         update(event.name)
         if (event == EspPairingEvent.Connected) {
             update("Fetching Wifi Around you")
