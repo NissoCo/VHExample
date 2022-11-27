@@ -18,6 +18,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.vayyar.vhexample.databinding.ActivityMainBinding
 import com.walabot.home.ble.Result
 import com.walabot.home.ble.pairing.esp.ProtocolMediator
+import com.walabot.home.ble.pairing.esp.WalabotDeviceDesc
 import com.walabot.home.ble.sdk.*
 
 class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
@@ -100,18 +101,18 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     }
 
 
-    override fun onStartScan() {
-        binding.fab.isEnabled = false
-    }
 
-    override fun onFinish(result: Result<ProtocolMediator.WifiScanResult>) {
+    override fun onFinish(result: Result<WalabotDeviceDesc>) {
         if (result.isSuccessfull) {
             binding.fab.isEnabled = true
             Snackbar.make(findViewById(R.id.mainView), "Wifi configured successfully", Snackbar.LENGTH_SHORT).show()
         }
     }
 
-    override fun onEvent(event: EspPairingEvent) {
+    override fun onEvent(event: EspPairingEvent, deviceDesc: WalabotDeviceDesc?) {
+        if (event == EspPairingEvent.Connecting) {
+            binding.fab.isEnabled = false
+        }
         Snackbar.make(findViewById(R.id.mainView), event.name, Snackbar.LENGTH_SHORT).show()
     }
 
