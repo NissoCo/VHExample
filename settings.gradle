@@ -14,5 +14,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "VHExample"
 include ':app'
-include ':blesdk'
-project(':blesdk').projectDir = new File('../blesdk')
+include ':vpairsdk'
+project(':vpairsdk').projectDir = new File('../vpairsdk')

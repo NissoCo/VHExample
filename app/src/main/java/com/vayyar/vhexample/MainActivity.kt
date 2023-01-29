@@ -2,16 +2,16 @@ package com.vayyar.vhexample
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.net.wifi.WifiInfo
+import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.*
 import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -20,8 +20,6 @@ import com.google.android.material.snackbar.Snackbar
 import com.vayyar.vhexample.databinding.ActivityMainBinding
 import com.walabot.home.ble.Result
 import com.walabot.home.ble.pairing.ConfigParams
-import com.walabot.home.ble.pairing.WifiNetworkMonitor
-import com.walabot.home.ble.pairing.esp.ProtocolMediator
 import com.walabot.home.ble.pairing.esp.WalabotDeviceDesc
 import com.walabot.home.ble.sdk.*
 
@@ -34,10 +32,11 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     private val MqttPort = 443
     private val configParams = ConfigParams(ServerBaseUrl, RegistryRegion, CloudProject, MqttUrl, MqttPort)
     private lateinit var binding: ActivityMainBinding
-    private val vPair = VPairSDK()
+    private var vPair = VPairSDK()
     private var wifiOptions: List<EspWifiItem>? = null
     private lateinit var recyclerView: RecyclerView
     private lateinit var snackBar: Snackbar
+    private var scanning = false
 
 
     val requestPermissionLauncher = registerForActivityResult(
@@ -62,13 +61,29 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
         setSupportActionBar(binding.toolbar)
         vPair.listener = this
         vPair.analyticsHandler = this
+        findViewById<SwitchCompat>(R.id.massProvision).setOnCheckedChangeListener { p0, p1 ->
+            vPair = if (p1) {
+                MassProvision()
+            } else {
+                VPairSDK()
+            }
+        }
+
         snackBar = Snackbar.make(findViewById(R.id.mainView), "Waiting for your action", Snackbar.LENGTH_INDEFINITE)
         snackBar.show()
         recyclerView = findViewById(R.id.wifiScannedRecycler)
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = WifiAdapter()
         binding.fab.setOnClickListener { _ ->
-            acquirePermissions()
+            binding.fab.setImageIcon(Icon.createWithResource(this, if (scanning) android.R.drawable.ic_popup_sync else android.R.drawable.ic_menu_close_clear_cancel))
+            if (scanning) {
+                vPair.stopPairing()
+            } else {
+                vPair.listener = this
+                vPair.analyticsHandler = this
+                acquirePermissions()
+            }
+            scanning = !scanning
         }
     }
 
@@ -78,7 +93,6 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
                 Manifest.permission.BLUETOOTH_SCAN
             ) == PackageManager.PERMISSION_GRANTED) {
             vPair.startPairing(this, CloudCredentials(null, null, false, configParams))
-            binding.fab.visibility = View.INVISIBLE
         } else {
             val permissions = arrayOf(
                 Manifest.permission.BLUETOOTH_SCAN,
@@ -129,14 +143,10 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     }
 
 
-    override fun onStartScan(deviceDesc: WalabotDeviceDesc?) {
-        update("Ble Scanning")
-    }
 
     override fun onFinish(result: Result<WalabotDeviceDesc>) {
         if (result.isSuccessfull) {
             runOnUiThread {
-                binding.fab.isEnabled = true
                 AlertDialog.Builder(this@MainActivity)
                     .setTitle("Pairing Done")
                     .setMessage("The device was paired successfully.")
