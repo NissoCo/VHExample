@@ -37,13 +37,14 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     private lateinit var recyclerView: RecyclerView
     private lateinit var snackBar: Snackbar
     private var scanning = false
+    private val credentials = CloudCredentials("pRkprGHnS4TSCoaL8P8e2jsXd1Z2", "eyJhbGciOiJSUzI1NiIsImtpZCI6ImFlYjMxMjdiMjRjZTg2MDJjODEyNDUxZThmZTczZDU4MjkyMDg4N2MiLCJ0eXAiOiJKV1QifQ.eyJkZXZpY2UiOnRydWUsImRldmljZUlkIjoiaWRfTjBNNk9VVTZRa1E2UVVZNk1VUTZNakEiLCJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vdmF5eWFyLWNhcmUiLCJhdWQiOiJ2YXl5YXItY2FyZSIsImF1dGhfdGltZSI6MTY3NjQ3NDM2NSwidXNlcl9pZCI6ImlkX04wTTZPVVU2UWtRNlFVWTZNVVE2TWpBIiwic3ViIjoiaWRfTjBNNk9VVTZRa1E2UVVZNk1VUTZNakEiLCJpYXQiOjE2NzY0NzQzNjUsImV4cCI6MTY3NjQ3Nzk2NSwiZmlyZWJhc2UiOnsiaWRlbnRpdGllcyI6e30sInNpZ25faW5fcHJvdmlkZXIiOiJjdXN0b20ifX0.5mj_393u9BNQLJmybZDcsV7wtLqCQrqy1yyY5glqHHy7iKP9xuuyie6t54mlesxUBuDsq6hcvT1mC8_P8Ym3QFeA31WkbfTMlI2bQY3NllXjkcifFfHTY7zBEbuFs-3ZwTGj847-10s6MjHahqxZ9QH4P7zIM1MysePYGGRsZsPtfXVDKfJDgvjOeX3lDwlnjNj9Zdhosq3kGeBXsMnG9OKTWnVU-icjDfInOHcex8TiiRb05_wpxZRrI2PPPlmqJ3cVjCSgCd3qOydaFtwdFD1KJ5JqGLhd3tU91yaeYCwPrNGq1PdIeJc0QtwbFHwkEG3ZTstqe7v5ZAIOx5Kuug", configParams)
 
 
     val requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { isGranted ->
             if (isGranted.isNotEmpty()) {
-                vPair.startPairing(this, CloudCredentials(null, null, false, configParams))
+                vPair.startPairing(this, credentials)
             } else {
                 // Explain to the user that the feature is unavailable because the
                 // features requires a permission that the user has denied. At the
@@ -81,7 +82,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
             } else {
                 vPair.listener = this
                 vPair.analyticsHandler = this
-                acquirePermissions()
+                vPair.startPairing(this, credentials)
             }
             scanning = !scanning
         }
@@ -92,7 +93,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
                 this,
                 Manifest.permission.BLUETOOTH_SCAN
             ) == PackageManager.PERMISSION_GRANTED) {
-            vPair.startPairing(this, CloudCredentials(null, null, false, configParams))
+            vPair.startPairing(this, credentials)
         } else {
             val permissions = arrayOf(
                 Manifest.permission.BLUETOOTH_SCAN,
@@ -116,7 +117,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1) {
-            vPair.startPairing(this, CloudCredentials(null, null, false, configParams))
+            vPair.startPairing(this, credentials)
         }
     }
 
@@ -160,7 +161,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
         }
     }
 
-    override fun onEvent(event: EspPairingEvent, deviceDesc: WalabotDeviceDesc?) {
+    override fun onEvent(event: EspPairingEvent, deviceId: String?) {
         update(event.name)
         if (event == EspPairingEvent.Connected) {
             update("Fetching Wifi Around you")
@@ -174,6 +175,20 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
             recyclerView.adapter?.notifyDataSetChanged()
         }
 
+    }
+
+    override fun onMissingPermission(permission: String) {
+        val permissions = arrayOf(
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+            requestPermissionLauncher.launch(permissions)
+        } else {
+            ActivityCompat.requestPermissions(this, permissions, 1)
+        }
     }
 
     override fun log(components: ArrayList<AnalyticsComponents>) {
