@@ -1,23 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
     <uses-permission
         android:name="android.permission.BLUETOOTH_ADMIN"
-        android:maxSdkVersion="30" />
-    <!-- required for API 23 - 30, no android:maxSdkVersion because of a potential breaking change -->
+        android:maxSdkVersion="30" /> <!-- required for API 23 - 30, no android:maxSdkVersion because of a potential breaking change -->
     <!-- TODO: add android:maxSdkVersion on 2.0.0 -->
     <uses-permission-sdk-23 android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission-sdk-23 android:name="android.permission.ACCESS_FINE_LOCATION" />
+
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -30,9 +32,9 @@
         android:theme="@style/Theme.VHExample"
         tools:targetApi="31">
         <activity
-            android:screenOrientation="fullSensor"
             android:name=".MainActivity"
             android:exported="true"
+            android:screenOrientation="fullSensor"
             android:theme="@style/Theme.VHExample.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
