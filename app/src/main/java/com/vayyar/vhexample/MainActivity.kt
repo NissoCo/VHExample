@@ -85,6 +85,7 @@ class MainActivity : AppCompatActivity(), PairingListener {
             } else {
                 vPair?.listener = this
 //                vPair.analyticsHandler = this
+                update("Scanning")
                 vPair?.scan()
             }
             scanning = !scanning
