@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
+import android.text.method.ScrollingMovementMethod
 import android.view.*
 import android.widget.EditText
 import android.widget.TextView
@@ -61,6 +62,7 @@ class MainActivity : AppCompatActivity(), PairingListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
+        binding.log.movementMethod = ScrollingMovementMethod()
         vPair?.listener = this
         vPair = MassProvisioning(this, credentials)
 
@@ -143,7 +145,9 @@ class MainActivity : AppCompatActivity(), PairingListener {
     }
 
     private fun update(message: String) {
+//        val textView = findViewById<TextView>(R.id.log)
         runOnUiThread {
+            binding.log.text = "${binding.log.text}\n$message"
             snackBar.setText(message)
         }
     }
@@ -167,7 +171,7 @@ class MainActivity : AppCompatActivity(), PairingListener {
     }
 
     override fun onEvent(event: EspPairingEvent, deviceId: String?) {
-        update(event.name)
+        update("device - $deviceId - ${event.name}")
         if (event == EspPairingEvent.Connected) {
             update("Fetching Wifi Around you")
         }
@@ -176,6 +180,7 @@ class MainActivity : AppCompatActivity(), PairingListener {
     override fun shouldSelect(wifiList: List<EspWifiItem>) {
         wifiOptions = wifiList
         update("Pick Wifi")
+        binding.log.visibility = View.INVISIBLE
         runOnUiThread {
             recyclerView.adapter?.notifyDataSetChanged()
         }
@@ -216,6 +221,7 @@ class MainActivity : AppCompatActivity(), PairingListener {
                         .setView(editText)
                         .setPositiveButton("Submit"
                         ) { p0, p1 ->
+                            binding.log.visibility = View.VISIBLE
                             recyclerView.visibility = View.INVISIBLE
                             vPair?.resumeConnection(item!!, editText.text.toString())
                         }
