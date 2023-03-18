@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import android.widget.EditText
 import android.widget.TextView
@@ -20,7 +21,6 @@ import com.google.android.material.snackbar.Snackbar
 import com.vayyar.vhexample.databinding.ActivityMainBinding
 import com.walabot.home.ble.Result
 import com.walabot.home.ble.pairing.ConfigParams
-import com.walabot.home.ble.pairing.esp.WalabotDeviceDesc
 import com.walabot.home.ble.sdk.*
 
 class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
@@ -32,7 +32,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     private val MqttPort = 443
     private val configParams = ConfigParams(ServerBaseUrl, RegistryRegion, CloudProject, MqttUrl, MqttPort)
     private lateinit var binding: ActivityMainBinding
-    private var vPair = VPairSDK()
+    private lateinit var vPair: VPairSDK
     private var wifiOptions: List<EspWifiItem>? = null
     private lateinit var recyclerView: RecyclerView
     private lateinit var snackBar: Snackbar
@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
             ActivityResultContracts.RequestMultiplePermissions()
         ) { isGranted ->
             if (isGranted.isNotEmpty()) {
-                vPair.startPairing(this, CloudCredentials(null, null, false, configParams))
+                vPair.startPairing()
             } else {
                 // Explain to the user that the feature is unavailable because the
                 // features requires a permission that the user has denied. At the
@@ -59,15 +59,18 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
-        vPair.listener = this
-        vPair.analyticsHandler = this
-        findViewById<SwitchCompat>(R.id.massProvision).setOnCheckedChangeListener { p0, p1 ->
-            vPair = if (p1) {
-                MassProvision()
-            } else {
-                VPairSDK()
-            }
-        }
+        vPair = VPairSDK(this)
+        vPair.cloudCredentials = CloudCredentials(null, null, configParams)
+        Log.d("test", vPair.isBleOn().toString())
+//        findViewById<SwitchCompat>(R.id.massProvision).setOnCheckedChangeListener { p0, p1 ->
+//            vPair = if (p1) {
+//                MassProvision(this, CloudCredentials(null, null, configParams))
+//            } else {
+//                VPairSDK(this, CloudCredentials(null, null, configParams))
+//            }
+//            vPair.listener = this
+//            vPair.analyticsHandler = this
+//        }
 
         snackBar = Snackbar.make(findViewById(R.id.mainView), "Waiting for your action", Snackbar.LENGTH_INDEFINITE)
         snackBar.show()
@@ -92,7 +95,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
                 this,
                 Manifest.permission.BLUETOOTH_SCAN
             ) == PackageManager.PERMISSION_GRANTED) {
-            vPair.startPairing(this, CloudCredentials(null, null, false, configParams))
+            vPair.startPairing()
         } else {
             val permissions = arrayOf(
                 Manifest.permission.BLUETOOTH_SCAN,
@@ -116,7 +119,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1) {
-            vPair.startPairing(this, CloudCredentials(null, null, false, configParams))
+            vPair.startPairing()
         }
     }
 
@@ -144,7 +147,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
 
 
 
-    override fun onFinish(result: Result<WalabotDeviceDesc>) {
+    override fun onFinish(result: Result<String>) {
         if (result.isSuccessfull) {
             runOnUiThread {
                 AlertDialog.Builder(this@MainActivity)
@@ -160,7 +163,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
         }
     }
 
-    override fun onEvent(event: EspPairingEvent, deviceDesc: WalabotDeviceDesc?) {
+    override fun onEvent(event: EspPairingEvent, deviceId: String?) {
         update(event.name)
         if (event == EspPairingEvent.Connected) {
             update("Fetching Wifi Around you")
@@ -174,6 +177,24 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
             recyclerView.adapter?.notifyDataSetChanged()
         }
 
+    }
+
+    override fun onMissingPermission(permission: String) {
+        val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+        } else {
+            TODO("VERSION.SDK_INT < S")
+        }
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
+            requestPermissionLauncher.launch(permissions)
+        } else {
+            ActivityCompat.requestPermissions(this, permissions, 1)
+        }
     }
 
     override fun log(components: ArrayList<AnalyticsComponents>) {
