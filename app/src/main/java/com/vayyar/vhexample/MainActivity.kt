@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.vayyar.vhexample.databinding.ActivityMainBinding
+import com.walabot.home.ble.BleDevice
 import com.walabot.home.ble.Result
 import com.walabot.home.ble.pairing.ConfigParams
 import com.walabot.home.ble.pairing.esp.WalabotDeviceDesc
@@ -64,7 +65,7 @@ class MainActivity : AppCompatActivity(), PairingListener {
         setSupportActionBar(binding.toolbar)
         binding.log.movementMethod = ScrollingMovementMethod()
         vPair?.listener = this
-        vPair = MassProvisioning(this, credentials)
+        vPair = MassProvisioning(this, CloudCredentials(null, null, configParams))
 
 //        vPair.analyticsHandler = this
 //        findViewById<SwitchCompat>(R.id.massProvision).setOnCheckedChangeListener { p0, p1 ->
@@ -152,6 +153,9 @@ class MainActivity : AppCompatActivity(), PairingListener {
         }
     }
 
+    override fun onScan(scannedDevices: List<BleDevice>) {
+
+    }
 
 
     override fun onFinish(result: Result<String>) {
