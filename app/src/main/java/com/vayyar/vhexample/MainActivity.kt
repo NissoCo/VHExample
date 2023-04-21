@@ -23,14 +23,28 @@ import com.walabot.home.ble.Result
 import com.walabot.home.ble.pairing.ConfigParams
 import com.walabot.home.ble.sdk.*
 
-class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
+class ConfigHandler(val env: String) {
+    val baseUrl: String
+        get() = if (env == "dev") "https://devaz.vayyarhomeapisdev.com" else "https://devaz.vayyarhomeapisdev.com"
 
-    private val ServerBaseUrl = "https://us-central1-vayyar-care.cloudfunctions.net"
-    private val RegistryRegion = "us-central1"
-    private val CloudProject = "vayyar-care"
-    private val MqttUrl = "mqtts://mqtt.googleapis.com"
-    private val MqttPort = 443
-    private val configParams = ConfigParams(ServerBaseUrl, RegistryRegion, CloudProject, MqttUrl, MqttPort)
+    val region: String
+        get() = "us-central1"
+
+    val cloudProj: String
+        get() = if (env == "dev") "vayyar-home-azure" else "walabot-home"
+
+    val url: String
+        get() = "mqtts://mqtt.googleapis.com"
+
+    val port: Int
+        get() = 443
+
+    val configParams: ConfigParams
+        get() = ConfigParams(baseUrl, region, cloudProj, url, port)
+
+}
+
+class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     private lateinit var binding: ActivityMainBinding
     private lateinit var vPair: VPairSDK
     private var wifiOptions: List<EspWifiItem>? = null
@@ -60,7 +74,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
         vPair = VPairSDK(this)
-        vPair.cloudCredentials = CloudCredentials(null, null, configParams)
+        vPair.cloudCredentials = CloudCredentials(null, null, ConfigHandler("prod").configParams)
         Log.d("test", vPair.isBleOn().toString())
 //        findViewById<SwitchCompat>(R.id.massProvision).setOnCheckedChangeListener { p0, p1 ->
 //            vPair = if (p1) {
@@ -174,6 +188,7 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
         wifiOptions = wifiList
         update("Pick Wifi")
         runOnUiThread {
+            recyclerView.visibility = View.VISIBLE
             recyclerView.adapter?.notifyDataSetChanged()
         }
 
