@@ -160,8 +160,26 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     }
 
 
-    override fun shouldRetry() {
-
+    override fun shouldRetry(reason: SDKRetryReason, item: EspWifiItem?) {
+        when (reason) {
+            SDKRetryReason.WifiPass -> {
+                runOnUiThread {
+                    val editText = EditText(this@MainActivity)
+                    AlertDialog.Builder(this@MainActivity)
+                        .setTitle("Wrong Wifi Code")
+                        .setMessage("Please enter the code for the selected WiFi again")
+                        .setView(editText)
+                        .setPositiveButton("Submit"
+                        ) { p0, p1 ->
+                            recyclerView.visibility = View.INVISIBLE
+                            vPair.resumeConnection(item!!, editText.text.toString())
+                        }
+                        .setCancelable(true)
+                        .show()
+                }
+            }
+            else -> {}
+        }
     }
 
     override fun onFinish(result: Result<String>) {
