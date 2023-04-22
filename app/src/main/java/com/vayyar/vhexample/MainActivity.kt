@@ -160,6 +160,9 @@ class MainActivity : AppCompatActivity(), PairingListener, AnalyticsHandler {
     }
 
 
+    override fun shouldRetry() {
+
+    }
 
     override fun onFinish(result: Result<String>) {
         if (result.isSuccessfull) {
