@@ -26,7 +26,8 @@ import com.walabot.home.ble.pairing.ConfigParams
 import com.walabot.home.ble.pairing.esp.WalabotDeviceDesc
 import com.walabot.home.ble.sdk.*
 
-class MainActivity : AppCompatActivity(), PairingListener {
+class MainActivity : AppCompatActivity(), PairingListener, WifiPickerFragment.Listener,
+    ScannedDevicesFragment.Listener {
 
     private val ServerBaseUrl = "https://us-central1-walabothome-app-cloud.cloudfunctions.net"
     private val RegistryRegion = "us-central1"
@@ -36,7 +37,7 @@ class MainActivity : AppCompatActivity(), PairingListener {
     private val configParams = ConfigParams(ServerBaseUrl, RegistryRegion, CloudProject, MqttUrl, MqttPort)
     private lateinit var binding: ActivityMainBinding
     private var vPair: MassProvisioning? = null
-    private var wifiOptions: List<EspWifiItem>? = null
+
     private lateinit var recyclerView: RecyclerView
     private lateinit var snackBar: Snackbar
     private var scanning = false
@@ -78,9 +79,7 @@ class MainActivity : AppCompatActivity(), PairingListener {
 
         snackBar = Snackbar.make(findViewById(R.id.mainView), "Waiting for your action", Snackbar.LENGTH_INDEFINITE)
         snackBar.show()
-        recyclerView = findViewById(R.id.wifiScannedRecycler)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = WifiAdapter()
+
         binding.fab.setOnClickListener { _ ->
             binding.fab.setImageIcon(Icon.createWithResource(this, if (scanning) android.R.drawable.ic_popup_sync else android.R.drawable.ic_menu_close_clear_cancel))
             if (scanning) {
@@ -154,7 +153,14 @@ class MainActivity : AppCompatActivity(), PairingListener {
     }
 
     override fun onScan(scannedDevices: List<BleDevice>) {
-
+        val fragment = ScannedDevicesFragment()
+        fragment.listener = this
+        fragment.devices = ArrayList(scannedDevices.map {
+            BleDeviceStatus(it, false)
+        })
+        runOnUiThread {
+            supportFragmentManager.beginTransaction().add(R.id.container, fragment, null).commit()
+        }
     }
 
 
@@ -182,11 +188,13 @@ class MainActivity : AppCompatActivity(), PairingListener {
     }
 
     override fun shouldSelect(wifiList: List<EspWifiItem>) {
-        wifiOptions = wifiList
+        val fragment = WifiPickerFragment()
+        fragment.listener = this
+        fragment.wifiOptions = wifiList
         update("Pick Wifi")
         binding.log.visibility = View.INVISIBLE
         runOnUiThread {
-            recyclerView.adapter?.notifyDataSetChanged()
+            supportFragmentManager.beginTransaction().add(R.id.container, fragment, null).commit()
         }
 
     }
@@ -206,48 +214,14 @@ class MainActivity : AppCompatActivity(), PairingListener {
         }
     }
 
-    inner class WifiAdapter: RecyclerView.Adapter<WifiAdapter.WifiViewHolder>() {
-
-        inner class WifiViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            private var textView: TextView
-            var item: EspWifiItem? = null
-            set(value) {
-                field = value
-                textView.text = value?.ssid.toString()
-            }
-            init {
-                textView = itemView.findViewById(R.id.textView)
-                val editText = EditText(this@MainActivity)
-                textView.setOnClickListener {
-                    AlertDialog.Builder(this@MainActivity)
-                        .setTitle("Wifi Code")
-                        .setMessage("Please enter the code for the selected WiFi")
-                        .setView(editText)
-                        .setPositiveButton("Submit"
-                        ) { p0, p1 ->
-                            binding.log.visibility = View.VISIBLE
-                            recyclerView.visibility = View.INVISIBLE
-                            vPair?.resumeConnection(item!!, editText.text.toString())
-                        }
-                        .setCancelable(true)
-                        .show()
-
-                }
-            }
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WifiAdapter.WifiViewHolder {
-            return WifiViewHolder(LayoutInflater.from(parent.context)
-                .inflate(R.layout.wifi_view_holde, parent, false))
-        }
-
-        override fun onBindViewHolder(holder: WifiAdapter.WifiViewHolder, position: Int) {
-            holder.item = wifiOptions?.get(position)
-        }
-
-        override fun getItemCount(): Int {
-            return wifiOptions?.size ?: 0
-        }
-
+    override fun onPicked(wifiItem: EspWifiItem, password: String) {
+        supportFragmentManager.popBackStack()
+        vPair?.resumeConnection(wifiItem, password)
     }
+
+    override fun onPickedDevices(devices: List<BleDevice>?) {
+        supportFragmentManager.popBackStack()
+    }
+
+
 }
