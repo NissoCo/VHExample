@@ -8,26 +8,20 @@ import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.view.*
 import android.widget.EditText
-import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SwitchCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.vayyar.vhexample.databinding.ActivityMainBinding
 import com.walabot.home.ble.BleDevice
 import com.walabot.home.ble.Result
 import com.walabot.home.ble.pairing.ConfigParams
-import com.walabot.home.ble.pairing.esp.WalabotDeviceDesc
 import com.walabot.home.ble.sdk.*
 
-class MainActivity : AppCompatActivity(), PairingListener, WifiPickerFragment.Listener,
-    ScannedDevicesFragment.Listener {
+class MainActivity : AppCompatActivity(), PairingListener {
 
     private val ServerBaseUrl = "https://us-central1-walabothome-app-cloud.cloudfunctions.net"
     private val RegistryRegion = "us-central1"
@@ -38,7 +32,6 @@ class MainActivity : AppCompatActivity(), PairingListener, WifiPickerFragment.Li
     private lateinit var binding: ActivityMainBinding
     private var vPair: MassProvisioning? = null
 
-    private lateinit var recyclerView: RecyclerView
     private lateinit var snackBar: Snackbar
     private var scanning = false
     private val credentials = CloudCredentials(null, null, configParams)
@@ -145,7 +138,6 @@ class MainActivity : AppCompatActivity(), PairingListener, WifiPickerFragment.Li
     }
 
     private fun update(message: String) {
-//        val textView = findViewById<TextView>(R.id.log)
         runOnUiThread {
             binding.log.text = "${binding.log.text}\n$message"
             snackBar.setText(message)
@@ -153,13 +145,28 @@ class MainActivity : AppCompatActivity(), PairingListener, WifiPickerFragment.Li
     }
 
     override fun onScan(scannedDevices: List<BleDevice>) {
-        val fragment = ScannedDevicesFragment()
-        fragment.listener = this
-        fragment.devices = ArrayList(scannedDevices.map {
-            BleDeviceStatus(it, false)
-        })
+        val statuses = ArrayList(scannedDevices.map {
+            false
+        }).toTypedArray<Boolean>().toBooleanArray()
+        val names = scannedDevices.map {
+            it.address
+        }.toTypedArray()
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Choose some devices")
+        val pickedDevices = ArrayList<BleDevice>()
+        builder.setMultiChoiceItems(names, statuses) { dialog, which, isChecked ->
+            val pickedDevice = scannedDevices.get(which)
+            if (isChecked) pickedDevices.add(pickedDevice) else pickedDevices.remove(pickedDevice)
+        }
+
+        builder.setPositiveButton("OK") { dialog, which ->
+            vPair?.connect(pickedDevices)
+        }
+        builder.setNegativeButton("Cancel", null)
+        val dialog = builder.create()
+
         runOnUiThread {
-            supportFragmentManager.beginTransaction().add(R.id.container, fragment, null).commit()
+            dialog.show()
         }
     }
 
@@ -181,20 +188,51 @@ class MainActivity : AppCompatActivity(), PairingListener, WifiPickerFragment.Li
     }
 
     override fun onEvent(event: EspPairingEvent, deviceId: String?) {
-        update("device - $deviceId - ${event.name}")
+        var updateText = event.name
+        deviceId?.let {
+            updateText = "device - $deviceId - ${event.name}"
+        }
+        update(updateText)
         if (event == EspPairingEvent.Connected) {
             update("Fetching Wifi Around you")
         }
     }
 
     override fun shouldSelect(wifiList: List<EspWifiItem>) {
-        val fragment = WifiPickerFragment()
-        fragment.listener = this
-        fragment.wifiOptions = wifiList
-        update("Pick Wifi")
-        binding.log.visibility = View.INVISIBLE
+        // setup the alert builder
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Choose Wifi")
+
+// add a radio button list
+        val wifiNames = wifiList.map { it.ssid }.toTypedArray()
+        var index = 0
+        builder.setSingleChoiceItems(wifiNames, index) { dialog, which ->
+            index = which
+        }
+
+
+// add OK and Cancel buttons
+        builder.setPositiveButton("OK") { dialog, which ->
+            val editText = EditText(this@MainActivity)
+            AlertDialog.Builder(this@MainActivity)
+                .setTitle("Wifi Code")
+                .setMessage("Please enter the code for ${wifiNames[index]}")
+                .setView(editText)
+                .setPositiveButton("Submit"
+                ) { p0, p1 ->
+                    vPair?.resumeConnection(wifiList.get(index), editText.text.toString())
+                }
+                .setCancelable(true)
+                .show()
+        }
+        builder.setNegativeButton("Cancel", null)
+
+// create and show the alert dialog
+
+
         runOnUiThread {
-            supportFragmentManager.beginTransaction().add(R.id.container, fragment, null).commit()
+            val dialog = builder.create()
+            dialog.show()
         }
 
     }
@@ -214,14 +252,6 @@ class MainActivity : AppCompatActivity(), PairingListener, WifiPickerFragment.Li
         }
     }
 
-    override fun onPicked(wifiItem: EspWifiItem, password: String) {
-        supportFragmentManager.popBackStack()
-        vPair?.resumeConnection(wifiItem, password)
-    }
-
-    override fun onPickedDevices(devices: List<BleDevice>?) {
-        supportFragmentManager.popBackStack()
-    }
 
 
 }
