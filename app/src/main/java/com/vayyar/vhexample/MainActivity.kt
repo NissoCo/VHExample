@@ -21,27 +21,21 @@ import com.walabot.home.ble.Result
 import com.walabot.home.ble.pairing.ConfigParams
 import com.walabot.home.ble.sdk.*
 
-class MainActivity : AppCompatActivity(), PairingListener {
+class MainActivity : AppCompatActivity(), PairingEvents {
 
-    private val ServerBaseUrl = "https://us-central1-walabothome-app-cloud.cloudfunctions.net"
-    private val RegistryRegion = "us-central1"
-    private val CloudProject = "walabothome-app-cloud"
-    private val MqttUrl = "mqtts://mqtt.googleapis.com"
-    private val MqttPort = 443
-    private val configParams = ConfigParams(ServerBaseUrl, RegistryRegion, CloudProject, MqttUrl, MqttPort)
+    private val configParams = Config.dev
     private lateinit var binding: ActivityMainBinding
     private var vPair: MassProvisioning? = null
 
     private lateinit var snackBar: Snackbar
     private var scanning = false
-    private val credentials = CloudCredentials(null, null, configParams)
 
 
     val requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { isGranted ->
             if (isGranted.isNotEmpty()) {
-                vPair?.scan()
+                vPair?.startMassProvision()
             } else {
                 // Explain to the user that the feature is unavailable because the
                 // features requires a permission that the user has denied. At the
@@ -58,8 +52,8 @@ class MainActivity : AppCompatActivity(), PairingListener {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
         binding.log.movementMethod = ScrollingMovementMethod()
-        vPair?.listener = this
-        vPair = MassProvisioning(this, CloudCredentials(null, null, configParams))
+        vPair?.eventsHandler = this
+        vPair = MassProvisioning(this, configParams)
 
 //        vPair.analyticsHandler = this
 //        findViewById<SwitchCompat>(R.id.massProvision).setOnCheckedChangeListener { p0, p1 ->
@@ -78,10 +72,10 @@ class MainActivity : AppCompatActivity(), PairingListener {
             if (scanning) {
                 vPair?.stopPairing()
             } else {
-                vPair?.listener = this
+                vPair?.eventsHandler = this
 //                vPair.analyticsHandler = this
                 update("Scanning")
-                vPair?.scan()
+                vPair?.startMassProvision()
             }
             scanning = !scanning
         }
@@ -93,7 +87,7 @@ class MainActivity : AppCompatActivity(), PairingListener {
                 this,
                 Manifest.permission.BLUETOOTH_SCAN
             ) == PackageManager.PERMISSION_GRANTED) {
-            vPair?.scan()
+            vPair?.startMassProvision()
         } else {
             val permissions = arrayOf(
                 Manifest.permission.BLUETOOTH_SCAN,
@@ -117,7 +111,7 @@ class MainActivity : AppCompatActivity(), PairingListener {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1) {
-            vPair?.scan()
+            vPair?.startMassProvision()
         }
     }
 
@@ -144,30 +138,12 @@ class MainActivity : AppCompatActivity(), PairingListener {
         }
     }
 
-    override fun onScan(scannedDevices: List<BleDevice>) {
-        val statuses = ArrayList(scannedDevices.map {
-            false
-        }).toTypedArray<Boolean>().toBooleanArray()
-        val names = scannedDevices.map {
-            it.address
-        }.toTypedArray()
-        val builder = AlertDialog.Builder(this)
-        builder.setTitle("Choose some devices")
-        val pickedDevices = ArrayList<BleDevice>()
-        builder.setMultiChoiceItems(names, statuses) { dialog, which, isChecked ->
-            val pickedDevice = scannedDevices.get(which)
-            if (isChecked) pickedDevices.add(pickedDevice) else pickedDevices.remove(pickedDevice)
-        }
+    override fun onError(error: Throwable) {
+        // handle errors
+    }
 
-        builder.setPositiveButton("OK") { dialog, which ->
-            vPair?.connect(pickedDevices)
-        }
-        builder.setNegativeButton("Cancel", null)
-        val dialog = builder.create()
-
-        runOnUiThread {
-            dialog.show()
-        }
+    override fun onWifiCredentialsFail(wifiList: List<EspWifiItem>) {
+        shouldSelect(wifiList)
     }
 
 
