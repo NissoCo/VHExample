@@ -17,6 +17,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.material.snackbar.Snackbar
 import com.vayyar.vhexample.databinding.ActivityMainBinding
 import com.walabot.home.ble.BleDevice
+import com.walabot.home.ble.Message
 import com.walabot.home.ble.Result
 import com.walabot.home.ble.pairing.ConfigParams
 import com.walabot.home.ble.sdk.*
@@ -163,12 +164,15 @@ class MainActivity : AppCompatActivity(), PairingEvents {
         }
     }
 
-    override fun onEvent(event: EspPairingEvent, deviceId: String?) {
-        var updateText = event.name
-        deviceId?.let {
-            updateText = "device - $deviceId - ${event.name}"
-        }
-        update(updateText)
+    override fun onEvent(
+        event: EspPairingEvent,
+        isError: Boolean,
+        message: String,
+        deviceInfo: Message.DevInfo?,
+        deviceId: String
+    ) {
+        val updateText = "device - $deviceId - $message"
+        update(message)
         if (event == EspPairingEvent.Connected) {
             update("Fetching Wifi Around you")
         }
@@ -196,7 +200,8 @@ class MainActivity : AppCompatActivity(), PairingEvents {
                 .setView(editText)
                 .setPositiveButton("Submit"
                 ) { p0, p1 ->
-                    vPair?.resumeConnection(wifiList.get(index), editText.text.toString())
+                    val item = wifiList.get(index)
+                    vPair?.resumeConnection(item.ssid, item.bssid, editText.text.toString())
                 }
                 .setCancelable(true)
                 .show()
