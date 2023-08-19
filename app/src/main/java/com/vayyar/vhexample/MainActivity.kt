@@ -148,27 +148,11 @@ class MainActivity : AppCompatActivity(), PairingEvents {
     }
 
 
-    override fun onFinish(result: Result<String>) {
-        if (result.isSuccessfull) {
-            runOnUiThread {
-                AlertDialog.Builder(this@MainActivity)
-                    .setTitle("Pairing Done")
-                    .setMessage("The device was paired successfully.")
-                    .setPositiveButton("OK"
-                    ) { p0, p1 ->
-
-                    }
-                    .setCancelable(true)
-                    .show()
-            }
-        }
-    }
-
     override fun onEvent(
         event: EspPairingEvent,
         isError: Boolean,
         message: String,
-        deviceInfo: Message.DevInfo?,
+        deviceInfo: Map<String, String>?,
         deviceId: String
     ) {
         val updateText = "device - $deviceId - $message"
