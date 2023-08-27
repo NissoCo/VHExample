@@ -24,11 +24,11 @@ import com.walabot.home.ble.sdk.*
 
 class MainActivity : AppCompatActivity(), PairingEvents {
 
-    private val configParams = Config.dev
+    private var configParams = Config.prod
     private lateinit var binding: ActivityMainBinding
     private var vPair: MassProvisioning? = null
 
-    private lateinit var snackBar: Snackbar
+//    private lateinit var snackBar: Snackbar
     private var scanning = false
 
 
@@ -54,6 +54,8 @@ class MainActivity : AppCompatActivity(), PairingEvents {
         setSupportActionBar(binding.toolbar)
         binding.log.movementMethod = ScrollingMovementMethod()
         vPair?.eventsHandler = this
+        configParams = Config.dev//Config.custom("{\"env\":\"dev\",\"apiURL\":\"https://dev.vayyarhomeapisdev.com\",\"userId\":\"QR7UAUp713aWIecEndwjEAhQp6p1\",\"accessToken\":\"eyJhbGciOiJSUzI1NiIsImtpZCI6ImM2MGI5ZGUwODBmZmFmYmZjMTgzMzllY2Q0NGFjNzdmN2ZhNGU4ZDMiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiTmlzc2ltIFBhcmRvIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FBY0hUdGNCRzBRZGJtT01ES0lFalp4am12c2tVSUFOUkFIM2M0UVNBRmtPVWc9czk2LWMiLCJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vd2FsYWJvdGhvbWUtYXBwLWNsb3VkIiwiYXVkIjoid2FsYWJvdGhvbWUtYXBwLWNsb3VkIiwiYXV0aF90aW1lIjoxNjkzMTU4MjQxLCJ1c2VyX2lkIjoiUVI3VUFVcDcxM2FXSWVjRW5kd2pFQWhRcDZwMSIsInN1YiI6IlFSN1VBVXA3MTNhV0llY0VuZHdqRUFoUXA2cDEiLCJpYXQiOjE2OTMxNTgyNDEsImV4cCI6MTY5MzE2MTg0MSwiZW1haWwiOiJhbmRyb2RvZ3NAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsiYW5kcm9kb2dzQGdtYWlsLmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6InBhc3N3b3JkIn19.Sbs8Krew3gwEmofA87Rjs4wAfcAgN4lQzHWy8Oe3kriYwzTkAw6bQ3XfJs5bCrmqijs5I5LYLB2t1UB-hC6jnPiezSSNtIOLxU4J47nSRfKsmxbZgswTtzxlAUyNc3zCZ9fek0OW5blp6ACWqUhd6syaivuHUy7Haz5Q6D5Ci3q72xtNTBPMeu4cGDjH5w-tRBzyKyS9n3Awia8l7cSUCpGe163tITnAPb5-vrmUbtlqkS55IXmwJHnbyj5lX3MSRep9dA1TPr1ZFCcAjgr5qZO80xQczOz7npifKs-8OzqLhkQwUijUkT9KKDJgPSQBdOpL01PbYTkT-gUeo137Iw\",\"wifi\":null,\"cloud\":{\"registryId\":\"walabot_home_gen2\",\"cloudRegion\":\"us-central1\",\"projectName\":\"walabothome-app-cloud\",\"cloudType\":0},\"mqtt\":{\"hostUrl\":\"mqtts://mqtt.googleapis.com\",\"port\":443,\"username\":\"unused\",\"password\":\"unused\",\"clientId\":\"unused\",\"ntpUrl\":\"pool.ntp.org\"}}")!!
+
         vPair = MassProvisioning(this, configParams)
 
 //        vPair.analyticsHandler = this
@@ -65,8 +67,8 @@ class MainActivity : AppCompatActivity(), PairingEvents {
 //            }
 //        }
 
-        snackBar = Snackbar.make(findViewById(R.id.mainView), "Waiting for your action", Snackbar.LENGTH_INDEFINITE)
-        snackBar.show()
+//        snackBar = Snackbar.make(findViewById(R.id.mainView), "Waiting for your action", Snackbar.LENGTH_INDEFINITE)
+//        snackBar.show()
 
         binding.fab.setOnClickListener { _ ->
             binding.fab.setImageIcon(Icon.createWithResource(this, if (scanning) android.R.drawable.ic_popup_sync else android.R.drawable.ic_menu_close_clear_cancel))
@@ -135,7 +137,7 @@ class MainActivity : AppCompatActivity(), PairingEvents {
     private fun update(message: String) {
         runOnUiThread {
             binding.log.text = "${binding.log.text}\n$message"
-            snackBar.setText(message)
+//            snackBar.setText(message)
         }
     }
 
@@ -152,14 +154,12 @@ class MainActivity : AppCompatActivity(), PairingEvents {
         event: EspPairingEvent,
         isError: Boolean,
         message: String,
-        deviceInfo: Map<String, String>?,
+        deviceInfo: Map<String, Any>?,
         deviceId: String
     ) {
-        val updateText = "device - $deviceId - $message"
-        update(message)
-        if (event == EspPairingEvent.Connected) {
-            update("Fetching Wifi Around you")
-        }
+        val updateText = "device - $deviceId - $message\ndevInfo:: $deviceInfo"
+        update(updateText)
+
     }
 
     override fun shouldSelect(wifiList: List<EspWifiItem>) {
@@ -203,17 +203,17 @@ class MainActivity : AppCompatActivity(), PairingEvents {
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    override fun onMissingPermission(permission: String) {
-        val permissions = arrayOf(
+    override fun onMissingPermission(permissions: List<String>) {
+        val _permissions = arrayOf(
             Manifest.permission.BLUETOOTH_SCAN,
             Manifest.permission.BLUETOOTH_CONNECT,
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
         )
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.P) {
-            requestPermissionLauncher.launch(permissions)
+            requestPermissionLauncher.launch(_permissions)
         } else {
-            ActivityCompat.requestPermissions(this, permissions, 1)
+            ActivityCompat.requestPermissions(this, _permissions, 1)
         }
     }
 
