@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 rootProject.name = "VHExample"
 include ':app'
 include ':vpairsdk'
-project(':vpairsdk').projectDir = new File('../vpairsdk')
+project(':vpairsdk').projectDir = new File('/Users/nissimpardo/Desktop/Repos/Android/vpairsdk')
