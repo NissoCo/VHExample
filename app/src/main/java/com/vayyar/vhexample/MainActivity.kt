@@ -8,19 +8,20 @@ import android.os.Bundle
 import android.text.method.ScrollingMovementMethod
 import android.view.*
 import android.widget.EditText
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.google.android.material.snackbar.Snackbar
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView.Adapter
+import androidx.recyclerview.widget.RecyclerView.LayoutManager
+import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.vayyar.vhexample.databinding.ActivityMainBinding
-import com.walabot.home.ble.BleDevice
-import com.walabot.home.ble.Message
-import com.walabot.home.ble.Result
-import com.walabot.home.ble.pairing.ConfigParams
 import com.walabot.home.ble.sdk.*
+import java.lang.Exception
 
 class MainActivity : AppCompatActivity(), PairingEvents {
 
@@ -28,11 +29,13 @@ class MainActivity : AppCompatActivity(), PairingEvents {
     private lateinit var binding: ActivityMainBinding
     private var vPair: MassProvisioning? = null
 
-//    private lateinit var snackBar: Snackbar
     private var scanning = false
+    private val statuses:  ArrayList<DeviceStatus> by lazy {
+        ArrayList()
+    }
 
 
-    val requestPermissionLauncher = registerForActivityResult(
+    private val requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { isGranted ->
             if (isGranted.isNotEmpty()) {
@@ -57,19 +60,6 @@ class MainActivity : AppCompatActivity(), PairingEvents {
         configParams = Config.custom("{\"env\":\"dev\",\"apiURL\":\"https://dev.vayyarhomeapisdev.com\",\"userId\":\"QR7UAUp713aWIecEndwjEAhQp6p1\",\"accessToken\":\"eyJhbGciOiJSUzI1NiIsImtpZCI6IjE5MGFkMTE4YTk0MGFkYzlmMmY1Mzc2YjM1MjkyZmVkZThjMmQwZWUiLCJ0eXAiOiJKV1QifQ.eyJuYW1lIjoiTmlzc2ltIFBhcmRvIiwicGljdHVyZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FBY0hUdGNCRzBRZGJtT01ES0lFalp4am12c2tVSUFOUkFIM2M0UVNBRmtPVWc9czk2LWMiLCJpc3MiOiJodHRwczovL3NlY3VyZXRva2VuLmdvb2dsZS5jb20vd2FsYWJvdGhvbWUtYXBwLWNsb3VkIiwiYXVkIjoid2FsYWJvdGhvbWUtYXBwLWNsb3VkIiwiYXV0aF90aW1lIjoxNjk0MDc1OTMyLCJ1c2VyX2lkIjoiUVI3VUFVcDcxM2FXSWVjRW5kd2pFQWhRcDZwMSIsInN1YiI6IlFSN1VBVXA3MTNhV0llY0VuZHdqRUFoUXA2cDEiLCJpYXQiOjE2OTQ0NDc1NjYsImV4cCI6MTY5NDQ1MTE2NiwiZW1haWwiOiJhbmRyb2RvZ3NAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImZpcmViYXNlIjp7ImlkZW50aXRpZXMiOnsiZW1haWwiOlsiYW5kcm9kb2dzQGdtYWlsLmNvbSJdfSwic2lnbl9pbl9wcm92aWRlciI6InBhc3N3b3JkIn19.B4cs8M9sgbq0i_Y9IlYVMGCpcZfTXe_I5VGOcjn1Gsb6nocrcd1qE-zmDJ1it8gr3NszD-kIxG7jp11szzLp4AyDsAsvbyoT3aN5xlzD8w06ikBDIOnPo38hD3SkhJ2Bhz8KyygWizpIAFiaTMsLHG0_UcdUjH6CI7lQkCOofhnmUJhMAZvTblywlbmTNOMyrHrapbAExHbK1zht9FDyo9NzJhGk_4_p4MaVZsZCa1_nbq_oMhkor2c3OlrBwBKPRGHPYmmoAHnvnn454_D75Wid-qlw3v8VkORRrpsmgFyyuCyBvs-GIn9E0tdsyGzFyznWGge1WW46Goz3DIynBQ\",\"wifi\":{\"ssid\":\"nissopa\",\"password\":\"0504030020\"},\"cloud\":{\"registryId\":\"walabot_home_gen2\",\"cloudRegion\":\"us-central1\",\"projectName\":\"walabothome-app-cloud\",\"cloudType\":0},\"mqtt\":{\"hostUrl\":\"mqtts://mqtt.googleapis.com\",\"port\":443,\"username\":\"unused\",\"password\":\"unused\",\"clientId\":\"unused\",\"ntpUrl\":\"pool.ntp.org\"}}")!!
 
         vPair = MassProvisioning(this, configParams)
-
-//        vPair.analyticsHandler = this
-//        findViewById<SwitchCompat>(R.id.massProvision).setOnCheckedChangeListener { p0, p1 ->
-//            vPair = if (p1) {
-//                MassProvision()
-//            } else {
-//                VPairSDK()
-//            }
-//        }
-
-//        snackBar = Snackbar.make(findViewById(R.id.mainView), "Waiting for your action", Snackbar.LENGTH_INDEFINITE)
-//        snackBar.show()
-
         binding.fab.setOnClickListener { _ ->
             binding.fab.setImageIcon(Icon.createWithResource(this, if (scanning) android.R.drawable.ic_popup_sync else android.R.drawable.ic_menu_close_clear_cancel))
             if (scanning) {
@@ -82,6 +72,8 @@ class MainActivity : AppCompatActivity(), PairingEvents {
             }
             scanning = !scanning
         }
+        binding.recycler.adapter = StatusAdapter()
+        binding.recycler.layoutManager = LinearLayoutManager(this)
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
@@ -157,9 +149,16 @@ class MainActivity : AppCompatActivity(), PairingEvents {
         deviceInfo: Map<String, Any>?,
         deviceId: String
     ) {
-        val updateText = "device - $deviceId - $message\ndevInfo:: $deviceInfo"
-        update(updateText)
+        try {
+            val current = statuses.first { deviceId == it.deviceId }
+            current.status = message
+        } catch (e: Exception) {
+            statuses.add(DeviceStatus(deviceId, message))
+        }
 
+        runOnUiThread {
+            binding.recycler.adapter?.notifyDataSetChanged()
+        }
     }
 
     override fun shouldSelect(wifiList: List<EspWifiItem>) {
@@ -217,6 +216,33 @@ class MainActivity : AppCompatActivity(), PairingEvents {
         }
     }
 
+    inner class StatusAdapter: Adapter<StatusAdapter.StatusItem>() {
+
+        inner class StatusItem(itemView: View) : ViewHolder(itemView) {
+            var status: DeviceStatus? = null
+                set(value) {
+                    field = value
+                    itemView.findViewById<TextView>(R.id.title).text = value?.deviceId
+                    itemView.findViewById<TextView>(R.id.subTitle).text = value?.status
+                }
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StatusItem {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.status_row, parent, false)
+
+            return StatusItem(view)
+        }
+
+        override fun getItemCount(): Int {
+            return statuses.size
+        }
+
+        override fun onBindViewHolder(holder: StatusItem, position: Int) {
+            holder.status = statuses[position]
+        }
+
+    }
 
 
 }
