@@ -9,11 +9,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/title"
-        android:textSize="20sp"/>
+        android:textSize="16sp"/>
     <TextView
         android:layout_width="match_parent"
-        android:textSize="16sp"
+        android:textSize="12sp"
         android:id="@+id/subTitle"
         android:layout_height="wrap_content"/>
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/cardview_light_background"/>
 
 </androidx.appcompat.widget.LinearLayoutCompat>
