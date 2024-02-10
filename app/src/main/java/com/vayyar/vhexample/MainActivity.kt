@@ -20,13 +20,18 @@ import androidx.recyclerview.widget.RecyclerView.Adapter
 import androidx.recyclerview.widget.RecyclerView.LayoutManager
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.vayyar.vhexample.databinding.ActivityMainBinding
-import com.walabot.home.ble.sdk.*
+import com.vayyar.vhexample.ui.dashboard.DashboardFragment
+import com.walabot.home.ble.sdk.Config
+import com.walabot.home.ble.sdk.EspPairingEvent
+import com.walabot.home.ble.sdk.EspWifiItem
+import com.walabot.home.ble.sdk.MassProvisioning
+import com.walabot.home.ble.sdk.PairingEvents
 import java.lang.Exception
 
 class MainActivity : AppCompatActivity(), PairingEvents {
 
     private var configParams = Config.prod
-    private lateinit var binding: ActivityMainBinding
+    lateinit var binding: ActivityMainBinding
     private var vPair: MassProvisioning? = null
 
     private var scanning = false
@@ -55,7 +60,9 @@ class MainActivity : AppCompatActivity(), PairingEvents {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
+        supportFragmentManager.beginTransaction().add(R.id.container, DashboardFragment(), "").addToBackStack("main").commit()
         binding.log.movementMethod = ScrollingMovementMethod()
+        binding.fab.visibility = View.INVISIBLE
         vPair?.eventsHandler = this
         configParams = Config.custom("{\"env\":\"dev\",\"apiURL\":\"https://dev.vayyarhomeapisdev.com\",\"cloud\":{\"registryId\":\"walabot_home_gen2\",\"cloudRegion\":\"us-central1\",\"projectName\":\"walabothome-app-cloud\",\"cloudType\":0},\"mqtt\":{\"hostUrl\":\"mqtts://mqtt.googleapis.com\",\"port\":443,\"username\":\"unused\",\"password\":\"unused\",\"clientId\":\"unused\",\"ntpUrl\":\"pool.ntp.org\"}}")!!
 
@@ -134,7 +141,7 @@ class MainActivity : AppCompatActivity(), PairingEvents {
     }
 
     override fun onError(error: Throwable) {
-        // handle errors
+        TODO("Not yet implemented")
     }
 
     override fun onWifiCredentialsFail(wifiList: List<EspWifiItem>) {
