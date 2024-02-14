@@ -123,6 +123,7 @@ class DashboardFragment : Fragment() {
                     field = value
                     itemView.findViewById<TextView>(R.id.title).text = value?.name
                     itemView.findViewById<TextView>(R.id.subTitle).text = value?.address
+                    itemView.findViewById<TextView>(R.id.rssi).text = value?.rssi.toString()
                 }
 
             init {
